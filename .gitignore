@@ -1,0 +1,17 @@
+# Virtual environment
+venv/
+
+# Byte-compiled files
+__pycache__/
+*.pyc
+
+# Mac-specific
+.DS_Store
+
+# Credentials
+.env
+
+# Misc
+*.log
+*.sqlite3
+
