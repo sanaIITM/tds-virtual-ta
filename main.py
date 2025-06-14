@@ -1,7 +1,3 @@
-import base64
-from io import BytesIO
-from PIL import Image
-import pytesseract
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Optional
@@ -27,14 +23,7 @@ async def respond_to_question(req: QuestionRequest):
 
     # If image is present, try extracting text
     if req.image:
-        try:
-            image_bytes = base64.b64decode(req.image)
-            img = Image.open(BytesIO(image_bytes))
-            ocr_text = pytesseract.image_to_string(img)
-            print("🖼️ OCR Extracted:", ocr_text[2080])
-            query += "\n\n" + ocr_text
-        except Exception as e:
-            print("⚠️ Image processing failed:", e)
+       print("⚠️ Image received but OCR is disabled — skipping.")
 
     results = search(req.question)
     answer = results[0]["text"] if results else "Sorry, I couldn't find an answer."
