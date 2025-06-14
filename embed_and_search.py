@@ -4,7 +4,7 @@ import json
 from typing import List, Tuple
 
 # Load a compact but good model
-model = SentenceTransformer("all-MiniLM-L6-v2")
+model = SentenceTransformer("paraphrase-albert-small-v2")
 
 # Store your documents and metadata
 documents: List[str] = []
@@ -16,6 +16,7 @@ def load_documents(path: str):
     with open(path, 'r') as f:
         data = json.load(f)
     documents = [item["text"] for item in data]
+    documents = documents[:50]  # TEMP: limit to 50 for low memory
     sources = [(item["url"], item["text"][:80]) for item in data]
     doc_embeddings = model.encode(documents, normalize_embeddings=True)
 
