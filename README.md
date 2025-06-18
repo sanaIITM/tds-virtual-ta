@@ -88,8 +88,7 @@ tds-virtual-ta/
   ```
 
 3. **Access Swagger UI at:**
-
-  [https://eel-saving-barely.ngrok-free.app/docs]
+ [https://eel-saving-barely.ngrok-free.app/docs]
 
 
 
