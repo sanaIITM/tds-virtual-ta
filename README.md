@@ -66,25 +66,30 @@ tds-virtual-ta/
 
 2. **Clone this repo and start the server using ngrok:**
 
+   Just run the following code in colab : thank me later :)
   ```
-  !pip install fastapi uvicorn nest_asyncio pyngrok sentence-transformers --quiet
-  
-  !git clone https://github.com/sanalITM/tds-virtual-ta.git
-  %cd tds-virtual-ta
-  
-  import nest_asyncio
-  from pyngrok import ngrok
-  import uvicorn
-  
-  nest_asyncio.apply()
-  ngrok.set_auth_token("replace with ngrok token")
-  
-  # reserved domain
-  public_url = ngrok.connect(addr=8000, domain="eel-saving-barely.ngrok-free.app") #replace with any reserved domain
-  print(f"🌐 Public URL: {public_url}")
-  
-  import main 
-  uvicorn.run(main.app, host="0.0.0.0", port=8000)
+# Step 1: Install dependencies
+!pip install fastapi uvicorn nest_asyncio pyngrok --quiet
+
+# Step 2: Clone my public GitHub repo
+!git clone --depth=1 https://github.com/sanaIITM/tds-virtual-ta.git
+%cd tds-virtual-ta
+
+# Step 3: Import and run your FastAPI app
+from pyngrok import ngrok
+import nest_asyncio
+import uvicorn
+import main  # this is your main.py
+
+# Step 4: Connect with static domain from ngrok
+ngrok.set_auth_token("replace with you ngrok auth token") 
+public_url = ngrok.connect(addr=8000, domain="replace with your subdomain ")
+print("🌐 Public URL:", public_url)
+
+# Step 5: Run app
+nest_asyncio.apply()
+uvicorn.run(main.app, host="0.0.0.0", port=8000)
+
   ```
 
 3. **Access Swagger UI at:**
