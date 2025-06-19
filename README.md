@@ -68,18 +68,26 @@ tds-virtual-ta/
 
    Just run the following code in colab : thank me later :)
   ```
-# Step 1: Install dependencies
 !pip install fastapi uvicorn nest_asyncio pyngrok --quiet
 
-# Step 2: Clone my public GitHub repo
+# Step 2: Remove existing folder if exists, then clone
+import shutil
+import os
+
+if os.path.exists("tds-virtual-ta"):
+    shutil.rmtree("tds-virtual-ta")
+
+import os
+os.environ["AI_PROXY_API_KEY"] = "replace with a token from aiproxy.sanand.workers.dev"
+
+
 !git clone --depth=1 https://github.com/sanaIITM/tds-virtual-ta.git
 %cd tds-virtual-ta
 
-# Step 3: Import and run your FastAPI app
 from pyngrok import ngrok
 import nest_asyncio
 import uvicorn
-import main  # this is your main.py
+import main  # assumes main.py is in tds-virtual-ta
 
 # Step 4: Connect with static domain from ngrok
 ngrok.set_auth_token("replace with you ngrok auth token") #get your auth token from https://dashboard.ngrok.com/get-started/your-authtoken
@@ -89,6 +97,7 @@ print("🌐 Public URL:", public_url)
 # Step 5: Run app
 nest_asyncio.apply()
 uvicorn.run(main.app, host="0.0.0.0", port=8000)
+
 
   ```
 
