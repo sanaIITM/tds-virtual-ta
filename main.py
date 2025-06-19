@@ -6,13 +6,13 @@ from embed_and_search import load_documents, search
 import os
 import requests
 
-# ✅ Correct AI Proxy endpoint
+# ✅ AI Proxy config
 AI_PROXY_URL = "https://aiproxy.sanand.workers.dev/openai/v1/chat/completions"
-AI_PROXY_API_KEY = os.environ.get("AI_PROXY_API_KEY")  # must be set in Colab before running
+AI_PROXY_API_KEY = os.environ.get("AI_PROXY_API_KEY")
 
 app = FastAPI()
 
-# ✅ Enable CORS
+# ✅ CORS for external access
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -21,35 +21,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Request format
+# ✅ Request schema
 class QuestionRequest(BaseModel):
     question: str
-    image: Optional[str] = None  # image handling not implemented yet
+    image: Optional[str] = None  # Base64 image supported, not used yet
 
-# ✅ Load course documents once
+# ✅ Load docs on startup
 load_documents("data/all_documents.json")
 print("✅ Testing document load...")
 test_results = search("GA5 Q8")
 print("✅ Found", len(test_results), "matches")
 for match in test_results[:2]:
-    print(match["text"][:80], "->", match["url"])
+    print("→", match["text"][:80], "->", match["url"])
 
-# ✅ Health check route
+# ✅ Health check
 @app.get("/api")
 @app.get("/api/")
 def health_check():
     return {"status": "ok", "message": "API is running"}
 
-# ✅ Main answer generation endpoint
+# ✅ Core logic
 @app.post("/api")
 @app.post("/api/")
 async def respond_to_question(req: QuestionRequest):
     query = req.question
 
     if req.image:
-        print("⚠️ Image received but OCR not implemented yet — skipping.")
+        print("⚠️ Received image (base64), but OCR is not implemented. Skipping.")
 
-    # 🔍 Search top relevant snippets
+    # 🔍 Search context
     results = search(query)
     if not results:
         return {
@@ -57,14 +57,16 @@ async def respond_to_question(req: QuestionRequest):
             "links": []
         }
 
-    # ✂️ Use top 5 results as context
     context = "\n\n".join([r["text"] for r in results[:5]])
 
-    # 🧠 Prompt messages for the model
+    # 🧠 Construct prompt
     messages = [
         {
             "role": "system",
-            "content": "You are a helpful assistant for IITM's TDS course. Use the context below to answer the question accurately and concisely. Include relevant discussion links."
+            "content": (
+                "You are a helpful assistant for IITM's TDS course. "
+                "Answer the question using the context. Include relevant discussion links in the response."
+            )
         },
         {
             "role": "user",
@@ -72,13 +74,12 @@ async def respond_to_question(req: QuestionRequest):
         }
     ]
 
-    # 🔐 AI Proxy headers
+    # 🔐 Request to AI Proxy
     headers = {
         "Authorization": f"Bearer {AI_PROXY_API_KEY}",
         "Content-Type": "application/json"
     }
 
-    # 📤 Request payload
     payload = {
         "model": "gpt-4o-mini",
         "messages": messages,
@@ -87,16 +88,22 @@ async def respond_to_question(req: QuestionRequest):
     }
 
     try:
-        response = requests.post(AI_PROXY_URL, headers=headers, json=payload, timeout=15)
+        response = requests.post(AI_PROXY_URL, headers=headers, json=payload, timeout=20)
         response.raise_for_status()
         data = response.json()
         answer = data["choices"][0]["message"]["content"]
     except Exception as e:
-        answer = f"❌ AI Proxy call failed: {str(e)}"
+        return {
+            "answer": f"❌ AI Proxy call failed: {str(e)}",
+            "links": []
+        }
 
     # 🔗 Format top 3 links
     links = [
-        {"url": r["url"], "text": r.get("snippet", r["text"][:100])}
+        {
+            "url": r["url"],
+            "text": r.get("snippet") or r["text"][:100]
+        }
         for r in results[:3]
     ]
 
@@ -104,8 +111,6 @@ async def respond_to_question(req: QuestionRequest):
         "answer": answer,
         "links": links
     }
-
-
 
 '''
 from fastapi import FastAPI
