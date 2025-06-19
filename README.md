@@ -70,7 +70,7 @@ tds-virtual-ta/
   ```
 !pip install fastapi uvicorn nest_asyncio pyngrok --quiet
 
-# Step 2: Remove existing folder if exists, then clone
+# Remove existing folder if exists, then clone
 import shutil
 import os
 
