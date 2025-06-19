@@ -2,11 +2,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import os
 from embed_and_search import load_documents, search
-from openai import OpenAI
+import os
+import requests
 
-# ✅ Initialize FastAPI
+# AI Proxy configuration
+AI_PROXY_URL = "https://aiproxy.sanand.workers.dev/v1/chat/completions"
+AI_PROXY_API_KEY = os.environ.get("eyJhbGciOiJIUzI1NiJ9.eyJlbWFpbCI6IjI0ZjEwMDA4MjNAZHMuc3R1ZHkuaWl0bS5hYy5pbiJ9.qkVzh9Uqw0PwaG-Zmi4x0nZ-tCRstVxZgz-gz2r3Ny4")
+
 app = FastAPI()
 
 # ✅ Enable CORS
@@ -18,14 +21,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ✅ Set up OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
 class QuestionRequest(BaseModel):
     question: str
-    image: Optional[str] = None  # base64 image support (OCR skipped for now)
+    image: Optional[str] = None  # base64 image support (not yet used)
 
-# ✅ Load course and Discourse content
+# ✅ Load your content
 load_documents("data/all_documents.json")
 print("✅ Testing document load...")
 test_results = search("GA5 Q8")
@@ -43,40 +43,38 @@ def health_check():
 async def respond_to_question(req: QuestionRequest):
     query = req.question
 
-    # Optional: Log that image was received (OCR is skipped for now)
     if req.image:
         print("⚠️ Image received but OCR is disabled — skipping.")
 
-    # 🔍 Search documents for relevant context
+    # Get relevant documents
     results = search(query)
-    context = "\n".join([r["snippet"] for r in results[:5]])
+    context = "\n\n".join([r["text"] for r in results[:5]])  # Limit to top 5
 
-    # 💬 Build prompt
-    prompt = f"""Answer the student's question based on the following posts from the IITM discourse forum and course content.
-If unsure, say you don't know. Provide helpful links when possible.
+    # Prepare system and user messages for AI
+    messages = [
+        {"role": "system", "content": "You're a helpful assistant for IITM's TDS course. Use the given context to answer the question accurately and link to relevant discussions."},
+        {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}
+    ]
 
-Question: {query}
+    headers = {
+        "Authorization": f"Bearer {AI_PROXY_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-Relevant posts:
-{context}
-"""
+    payload = {
+        "model": "gpt-4o-mini",
+        "messages": messages
+    }
 
     try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant for the IITM BSc Virtual TA."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.3,
-        )
-        answer = response.choices[0].message.content.strip()
+        response = requests.post(AI_PROXY_URL, headers=headers, json=payload, timeout=15)
+        response.raise_for_status()
+        data = response.json()
+        answer = data["choices"][0]["message"]["content"]
     except Exception as e:
-        answer = f"❌ OpenAI API call failed: {str(e)}"
+        answer = f"❌ AI Proxy call failed: {str(e)}"
 
-    # 📎 Collect links
-    links = [{"url": r["url"], "text": r["snippet"][:100]} for r in results]
-
+    links = [{"url": r["url"], "text": r["snippet"]} for r in results]
     return {"answer": answer, "links": links}
 
 
