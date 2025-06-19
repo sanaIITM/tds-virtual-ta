@@ -28,10 +28,12 @@ for match in test_results:
     print(match["text"][:80], "->", match["url"])
 
 @app.get("/api")
+@app.get("/api/")
 def health_check():
     return {"status": "ok", "message": "API is running"}
 
 @app.post("/api")
+@app.post("/api/")
 async def respond_to_question(req: QuestionRequest):
     query = req.question
 
