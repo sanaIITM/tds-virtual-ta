@@ -6,8 +6,8 @@ from embed_and_search import load_documents, search
 import os
 import requests
 
-# AI Proxy configuration
-AI_PROXY_URL = "https://aiproxy.sanand.workers.dev/v1/chat/completions"
+# ✅ AI Proxy endpoint and key
+AI_PROXY_URL = "https://aiproxy.sanand.workers.dev/v1/completions"
 AI_PROXY_API_KEY = os.environ.get("AI_PROXY_API_KEY")
 
 app = FastAPI()
@@ -23,14 +23,14 @@ app.add_middleware(
 
 class QuestionRequest(BaseModel):
     question: str
-    image: Optional[str] = None  # base64 image support (not yet used)
+    image: Optional[str] = None  # base64 image support (currently ignored)
 
-# ✅ Load your content
+# ✅ Load documents
 load_documents("data/all_documents.json")
 print("✅ Testing document load...")
 test_results = search("GA5 Q8")
 print("✅ Found", len(test_results), "matches")
-for match in test_results:
+for match in test_results[:2]:
     print(match["text"][:80], "->", match["url"])
 
 @app.get("/api")
@@ -44,17 +44,21 @@ async def respond_to_question(req: QuestionRequest):
     query = req.question
 
     if req.image:
-        print("⚠️ Image received but OCR is disabled — skipping.")
+        print("⚠️ Image received but OCR is not enabled — skipping.")
 
-    # Get relevant documents
+    # 🔍 Search content
     results = search(query)
-    context = "\n\n".join([r["text"] for r in results[:5]])  # Limit to top 5
+    context = "\n\n".join([r["text"] for r in results[:5]])  # Top 5 contexts
 
-    # Prepare system and user messages for AI
-    messages = [
-        {"role": "system", "content": "You're a helpful assistant for IITM's TDS course. Use the given context to answer the question accurately and link to relevant discussions."},
-        {"role": "user", "content": f"Context:\n{context}\n\nQuestion: {query}"}
-    ]
+    # 🧠 Prompt format (not chat format)
+    prompt = f"""You are a helpful assistant for IITM's TDS course. Use the context below to answer the question clearly and link relevant discussions.
+
+Context:
+{context}
+
+Question: {query}
+
+Answer:"""
 
     headers = {
         "Authorization": f"Bearer {AI_PROXY_API_KEY}",
@@ -63,20 +67,28 @@ async def respond_to_question(req: QuestionRequest):
 
     payload = {
         "model": "gpt-4o-mini",
-        "messages": messages
+        "prompt": prompt,
+        "max_tokens": 500,
+        "temperature": 0.7
     }
 
     try:
         response = requests.post(AI_PROXY_URL, headers=headers, json=payload, timeout=15)
         response.raise_for_status()
         data = response.json()
-        answer = data["choices"][0]["message"]["content"]
+        answer = data["choices"][0]["text"]
     except Exception as e:
         answer = f"❌ AI Proxy call failed: {str(e)}"
 
-    links = [{"url": r["url"], "text": r["snippet"]} for r in results]
-    return {"answer": answer, "links": links}
+    links = [
+        {
+            "url": r["url"],
+            "text": r.get("snippet", r["text"][:100])
+        }
+        for r in results[:3]
+    ]
 
+    return {"answer": answer, "links": links}
 
 '''
 from fastapi import FastAPI
