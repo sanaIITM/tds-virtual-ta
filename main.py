@@ -7,7 +7,7 @@ import os
 import requests
 
 # ✅ AI Proxy setup
-AI_PROXY_URL = "https://aiproxy.sanand.workers.dev/v1/completions"
+AI_PROXY_URL = "https://aiproxy.sanand.workers.dev/"
 AI_PROXY_API_KEY = os.environ.get("AI_PROXY_API_KEY")  # Set in Colab
 
 app = FastAPI()
