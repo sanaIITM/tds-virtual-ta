@@ -68,12 +68,6 @@ async def respond_to_question(req: QuestionRequest):
     }
 
 
-
-
-
-
-
-
 '''
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
