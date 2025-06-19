@@ -82,8 +82,8 @@ import uvicorn
 import main  # this is your main.py
 
 # Step 4: Connect with static domain from ngrok
-ngrok.set_auth_token("replace with you ngrok auth token") 
-public_url = ngrok.connect(addr=8000, domain="replace with your subdomain ")
+ngrok.set_auth_token("replace with you ngrok auth token") #get your auth token from https://dashboard.ngrok.com/get-started/your-authtoken
+public_url = ngrok.connect(addr=8000, domain="replace with your subdomain ") # under domain (https://dashboard.ngrok.com/domains) select create domain and get your url
 print("🌐 Public URL:", public_url)
 
 # Step 5: Run app
